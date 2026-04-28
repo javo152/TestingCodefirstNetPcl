@@ -1,0 +1,53 @@
+using SQLite;
+using TestingCodefirstNetPcl.Models;
+
+namespace TestingCodefirstNetPcl.Framework;
+
+/// <summary>
+/// Manages the SQLite database connection and schema initialization.
+/// Registered as a singleton in DI so all repositories share the same connection.
+/// </summary>
+public class DatabaseContext
+{
+    private readonly Lazy<Task> _initTask;
+
+    /// <summary>
+    /// The shared SQLite connection, created immediately.
+    /// Tables are initialized lazily on the first call to EnsureInitializedAsync.
+    /// </summary>
+    public SQLiteAsyncConnection Connection { get; }
+
+    public DatabaseContext()
+    {
+        // Connection is created synchronously (no deadlock risk)
+        Connection = new SQLiteAsyncConnection(Constants.DatabasePath, Constants.Flags);
+
+        // Table creation is deferred to the first async call.
+        // Lazy<Task> guarantees it only runs once, even under concurrency.
+        _initTask = new Lazy<Task>(InitializeTablesAsync);
+    }
+
+    /// <summary>
+    /// Ensures all tables are created. Safe to call multiple times;
+    /// </summary>
+    public Task EnsureInitializedAsync() => _initTask.Value;
+
+    /// <summary>
+    /// Code-First: creates tables based on the model classes.
+    /// </summary>
+    private async Task InitializeTablesAsync()
+    {
+        // Enable WAL mode for better concurrent read/write performance, if not already active
+        var journalMode = await Connection.ExecuteScalarAsync<string>("PRAGMA journal_mode;");
+        if (!string.Equals(journalMode, "wal", StringComparison.OrdinalIgnoreCase))
+        {
+            await Connection.ExecuteScalarAsync<string>("PRAGMA journal_mode=WAL;");
+        }
+
+        await Connection.CreateTableAsync<Company>();
+        await Connection.CreateTableAsync<Department>();
+        await Connection.CreateTableAsync<Employee>();
+        await Connection.CreateTableAsync<Project>();
+        await Connection.CreateTableAsync<TaskItem>();
+    }
+}
