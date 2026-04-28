@@ -17,6 +17,9 @@ public class CompanyRepository : BaseRepository<Company>
             company.Departments = await Connection.Table<Department>()
                 .Where(d => d.CompanyId == company.Id)
                 .ToListAsync();
+
+            //Another example of using the GetAllAsync method with a different filter
+            var company2 = await GetAllAsync(company => company.Id == companyId && company.Name.StartsWith("Penske"));
         }
 
         return company;

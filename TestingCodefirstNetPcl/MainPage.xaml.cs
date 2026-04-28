@@ -35,6 +35,8 @@ namespace TestingCodefirstNetPcl
             // 3. Retrieve item with nested references resolved
             var deptWithData = await _departmentRepo.GetDepartmentWithNestedDataAsync(newDepartment.Id);
 
+            var company2 = await _companyRepo.GetCompanyWithDepartmentsAsync(newCompany.Id);
+
             await DisplayAlertAsync("Db initialized", $"Loaded: {deptWithData?.Name} with Id {deptWithData?.Id} belonging to {deptWithData?.Company?.Name}", "Accept");
         }
 
